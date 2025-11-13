@@ -180,6 +180,57 @@ async def get_room_info(room_id: str):
         }
 
 
+@app.get("/debug/participants/{room_id}")
+async def debug_participants(room_id: str):
+    """Debug endpoint to check participants in a room."""
+    if not USE_DATABASE:
+        return {"error": "Database not configured"}
+    
+    db = next(get_db())
+    try:
+        from app.database import Participant, Room
+        import uuid
+        
+        try:
+            room_uuid = uuid.UUID(room_id)
+        except ValueError:
+            return {"error": f"Invalid room_id format: {room_id}"}
+        
+        # Get room
+        room = db.query(Room).filter(Room.room_id == room_uuid).first()
+        if not room:
+            return {"error": "Room not found", "room_id": room_id}
+        
+        # Get all participants (active and left)
+        all_participants = db.query(Participant).filter(
+            Participant.room_id == room_uuid
+        ).all()
+        
+        active_participants = db.query(Participant).filter(
+            Participant.room_id == room_uuid,
+            Participant.status == 'active'
+        ).all()
+        
+        return {
+            "room_id": room_id,
+            "room_status": room.status,
+            "total_participants": len(all_participants),
+            "active_participants": len(active_participants),
+            "participants": [
+                {
+                    "user_id": str(p.user_id),
+                    "status": p.status,
+                    "joined_at": p.joined_at.isoformat() if p.joined_at else None,
+                    "left_at": p.left_at.isoformat() if p.left_at else None,
+                    "username": p.username
+                }
+                for p in all_participants
+            ]
+        }
+    finally:
+        db.close()
+
+
 @app.websocket("/ws/{room_id}")
 async def websocket_endpoint(websocket: WebSocket, room_id: str):
     """
