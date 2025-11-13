@@ -550,7 +550,8 @@ function VideoCall({ roomId, username, onLeave }) {
         });
 
         // Check if user is sharing the current tab/window (infinity mirror detection)
-        // Note: Can use screenStream.getVideoTracks()[0].getSettings() for detection if needed
+        const videoTrack = screenStream.getVideoTracks()[0];
+        // Note: Can use videoTrack.getSettings() for detection if needed
         
         // Show warning overlay when screen sharing starts
         setShowScreenShareWarning(true);
