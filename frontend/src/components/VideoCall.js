@@ -742,6 +742,7 @@ function VideoCall({ roomId, username, onLeave }) {
       
       // Clean up peer connections
       // Capture ref value to satisfy React hooks exhaustive-deps rule
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       const currentPeers = peersRef.current;
       if (currentPeers) {
         currentPeers.forEach((peer) => {
