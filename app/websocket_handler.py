@@ -12,7 +12,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Check if database is configured
-USE_DATABASE = bool(os.getenv('DB_PASSWORD') and os.getenv('DB_NAME'))
+# Support both DATABASE_URL (Railway/Heroku) and individual variables
+USE_DATABASE = bool(os.getenv('DATABASE_URL') or (os.getenv('DB_PASSWORD') and os.getenv('DB_NAME')))
 
 if USE_DATABASE:
     try:

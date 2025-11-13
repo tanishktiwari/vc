@@ -17,7 +17,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Check if database is configured
-USE_DATABASE = bool(os.getenv('DB_PASSWORD') and os.getenv('DB_NAME'))
+# Support both DATABASE_URL (Railway/Heroku) and individual variables
+USE_DATABASE = bool(os.getenv('DATABASE_URL') or (os.getenv('DB_PASSWORD') and os.getenv('DB_NAME')))
 
 if USE_DATABASE:
     try:
@@ -67,6 +68,42 @@ async def root():
             "list_rooms": "GET /rooms",
             "websocket": "WS /ws/{room_id}"
         }
+    }
+
+
+@app.get("/debug/env")
+async def debug_env():
+    """Debug endpoint to check environment variables (for troubleshooting)."""
+    import os
+    database_url = os.getenv('DATABASE_URL')
+    
+    # Mask password in DATABASE_URL for security
+    masked_url = None
+    if database_url:
+        if '@' in database_url:
+            parts = database_url.split('@')
+            if ':' in parts[0]:
+                user_pass = parts[0].split(':')
+                if len(user_pass) >= 3:  # postgresql://user:pass
+                    masked_url = f"{user_pass[0]}://{user_pass[1]}:****@{parts[1]}"
+                elif len(user_pass) >= 2:
+                    masked_url = f"{user_pass[0]}:****@{parts[1]}"
+                else:
+                    masked_url = database_url[:50] + "..."
+            else:
+                masked_url = database_url[:50] + "..."
+        else:
+            masked_url = database_url[:50] + "..."
+    
+    return {
+        "DATABASE_URL_set": bool(database_url),
+        "DATABASE_URL_preview": masked_url,
+        "DB_HOST": os.getenv('DB_HOST'),
+        "DB_NAME": os.getenv('DB_NAME'),
+        "DB_USER": os.getenv('DB_USER'),
+        "DB_PASSWORD_set": bool(os.getenv('DB_PASSWORD')),
+        "USE_DATABASE": USE_DATABASE,
+        "database_configured": USE_DATABASE
     }
 
 
