@@ -407,8 +407,10 @@ function VideoCall({ roomId, username, onLeave }) {
       return;
     }
     
-    // Use environment variable for WebSocket URL, fallback to localhost for development
-    const wsBaseUrl = process.env.REACT_APP_WS_URL || 'ws://localhost:8000';
+    // Use environment variable for WebSocket URL
+    // Only fallback to localhost in development mode (not in production)
+    const wsBaseUrl = process.env.REACT_APP_WS_URL || 
+      (process.env.NODE_ENV === 'development' ? 'ws://localhost:8000' : '');
     const wsUrl = `${wsBaseUrl}/ws/${currentRoomId}`;
     console.log('Connecting to WebSocket:', wsUrl, 'for room:', currentRoomId);
     const ws = new WebSocket(wsUrl);
