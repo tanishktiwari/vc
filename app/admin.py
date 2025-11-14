@@ -17,8 +17,7 @@ try:
 except ImportError:
     pass
 
-# Support both DATABASE_URL (Railway/Heroku) and individual variables
-DB_CONFIGURED = bool(os.getenv('DATABASE_URL') or os.getenv('DB_PASSWORD') or (os.getenv('DB_NAME') and os.getenv('DB_NAME') != 'video_conferencing'))
+DB_CONFIGURED = bool(os.getenv('DB_PASSWORD') or (os.getenv('DB_NAME') and os.getenv('DB_NAME') != 'video_conferencing'))
 
 def get_db():
     """Get database session if configured."""

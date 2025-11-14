@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Check if database is configured
-# Support both DATABASE_URL (Railway/Heroku) and individual variables
+# Render provides DATABASE_URL automatically when database is linked
 USE_DATABASE = bool(os.getenv('DATABASE_URL') or (os.getenv('DB_PASSWORD') and os.getenv('DB_NAME')))
 
 if USE_DATABASE:
@@ -67,21 +67,7 @@ class ConnectionManager:
             db = next(get_db())
             try:
                 db_manager = RoomManagerDB(db)
-                success = db_manager.join_room(room_id, user_id)
-                if not success:
-                    print(f"⚠️ Warning: Failed to join room {room_id} for user {user_id}")
-                    # Check if room exists
-                    room_exists = db_manager.room_exists(room_id)
-                    print(f"   Room exists check: {room_exists}")
-                else:
-                    print(f"✅ Successfully joined room {room_id} for user {user_id}")
-                    # Verify participant was added
-                    participants = db_manager.get_room_participants(room_id)
-                    print(f"   Current active participants in room: {len(participants)}")
-            except Exception as e:
-                print(f"❌ Error joining room {room_id} for user {user_id}: {e}")
-                import traceback
-                traceback.print_exc()
+                db_manager.join_room(room_id, user_id)
             finally:
                 db.close()
         else:

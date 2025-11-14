@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Check if database is configured
-# Support both DATABASE_URL (Railway/Heroku) and individual variables
+# Render provides DATABASE_URL automatically when database is linked
 USE_DATABASE = bool(os.getenv('DATABASE_URL') or (os.getenv('DB_PASSWORD') and os.getenv('DB_NAME')))
 
 if USE_DATABASE:
@@ -68,42 +68,6 @@ async def root():
             "list_rooms": "GET /rooms",
             "websocket": "WS /ws/{room_id}"
         }
-    }
-
-
-@app.get("/debug/env")
-async def debug_env():
-    """Debug endpoint to check environment variables (for troubleshooting)."""
-    import os
-    database_url = os.getenv('DATABASE_URL')
-    
-    # Mask password in DATABASE_URL for security
-    masked_url = None
-    if database_url:
-        if '@' in database_url:
-            parts = database_url.split('@')
-            if ':' in parts[0]:
-                user_pass = parts[0].split(':')
-                if len(user_pass) >= 3:  # postgresql://user:pass
-                    masked_url = f"{user_pass[0]}://{user_pass[1]}:****@{parts[1]}"
-                elif len(user_pass) >= 2:
-                    masked_url = f"{user_pass[0]}:****@{parts[1]}"
-                else:
-                    masked_url = database_url[:50] + "..."
-            else:
-                masked_url = database_url[:50] + "..."
-        else:
-            masked_url = database_url[:50] + "..."
-    
-    return {
-        "DATABASE_URL_set": bool(database_url),
-        "DATABASE_URL_preview": masked_url,
-        "DB_HOST": os.getenv('DB_HOST'),
-        "DB_NAME": os.getenv('DB_NAME'),
-        "DB_USER": os.getenv('DB_USER'),
-        "DB_PASSWORD_set": bool(os.getenv('DB_PASSWORD')),
-        "USE_DATABASE": USE_DATABASE,
-        "database_configured": USE_DATABASE
     }
 
 
@@ -178,57 +142,6 @@ async def get_room_info(room_id: str):
             "participants": list(participants),
             "exists": True
         }
-
-
-@app.get("/debug/participants/{room_id}")
-async def debug_participants(room_id: str):
-    """Debug endpoint to check participants in a room."""
-    if not USE_DATABASE:
-        return {"error": "Database not configured"}
-    
-    db = next(get_db())
-    try:
-        from app.database import Participant, Room
-        import uuid
-        
-        try:
-            room_uuid = uuid.UUID(room_id)
-        except ValueError:
-            return {"error": f"Invalid room_id format: {room_id}"}
-        
-        # Get room
-        room = db.query(Room).filter(Room.room_id == room_uuid).first()
-        if not room:
-            return {"error": "Room not found", "room_id": room_id}
-        
-        # Get all participants (active and left)
-        all_participants = db.query(Participant).filter(
-            Participant.room_id == room_uuid
-        ).all()
-        
-        active_participants = db.query(Participant).filter(
-            Participant.room_id == room_uuid,
-            Participant.status == 'active'
-        ).all()
-        
-        return {
-            "room_id": room_id,
-            "room_status": room.status,
-            "total_participants": len(all_participants),
-            "active_participants": len(active_participants),
-            "participants": [
-                {
-                    "user_id": str(p.user_id),
-                    "status": p.status,
-                    "joined_at": p.joined_at.isoformat() if p.joined_at else None,
-                    "left_at": p.left_at.isoformat() if p.left_at else None,
-                    "username": p.username
-                }
-                for p in all_participants
-            ]
-        }
-    finally:
-        db.close()
 
 
 @app.websocket("/ws/{room_id}")

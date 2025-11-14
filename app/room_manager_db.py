@@ -31,27 +31,16 @@ class RoomManagerDB:
         """Add a user to a room. Returns True if successful, False if room doesn't exist."""
         try:
             room_uuid = uuid.UUID(room_id)
-        except ValueError as e:
-            print(f"❌ Invalid room_id format: {room_id}, error: {e}")
+        except ValueError:
             return False
         
         # Check if room exists
         room = self.db.query(Room).filter(Room.room_id == room_uuid).first()
-        if not room:
-            print(f"❌ Room {room_id} does not exist in database")
-            return False
-        
-        if room.status != 'active':
-            print(f"❌ Room {room_id} exists but status is '{room.status}', not 'active'")
+        if not room or room.status != 'active':
             return False
         
         # Check if participant already exists
-        try:
-            user_uuid = uuid.UUID(user_id) if isinstance(user_id, str) else user_id
-        except ValueError as e:
-            print(f"❌ Invalid user_id format: {user_id}, error: {e}")
-            return False
-        
+        user_uuid = uuid.UUID(user_id) if isinstance(user_id, str) else user_id
         existing = self.db.query(Participant).filter(
             Participant.room_id == room_uuid,
             Participant.user_id == user_uuid,
@@ -59,54 +48,14 @@ class RoomManagerDB:
         ).first()
         
         if not existing:
-            # Check if there's a participant with 'left' status that we should reactivate
-            left_participant = self.db.query(Participant).filter(
-                Participant.room_id == room_uuid,
-                Participant.user_id == user_uuid,
-                Participant.status == 'left'
-            ).first()
-            
-            if left_participant:
-                # Reactivate the participant
-                left_participant.status = 'active'
-                left_participant.left_at = None
-                if username:
-                    left_participant.username = username
-                try:
-                    self.db.commit()
-                    print(f"✅ Reactivated participant {user_id} in room {room_id}")
-                except Exception as e:
-                    print(f"❌ Error reactivating participant: {e}")
-                    self.db.rollback()
-                    return False
-            else:
-                # Create new participant
-                try:
-                    participant = Participant(
-                        room_id=room_uuid,
-                        user_id=user_uuid,
-                        username=username,
-                        status='active'
-                    )
-                    self.db.add(participant)
-                    self.db.commit()
-                    print(f"✅ Added new participant {user_id} to room {room_id}")
-                except Exception as e:
-                    print(f"❌ Error adding participant: {e}")
-                    import traceback
-                    traceback.print_exc()
-                    self.db.rollback()
-                    return False
-        else:
-            # Participant already exists and is active
-            if username and existing.username != username:
-                existing.username = username
-                try:
-                    self.db.commit()
-                except Exception as e:
-                    print(f"❌ Error updating username: {e}")
-                    self.db.rollback()
-            print(f"ℹ️ Participant {user_id} already active in room {room_id}")
+            participant = Participant(
+                room_id=room_uuid,
+                user_id=user_uuid,
+                username=username,
+                status='active'
+            )
+            self.db.add(participant)
+            self.db.commit()
         
         return True
     

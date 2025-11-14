@@ -2,7 +2,8 @@
  * API utility functions for backend communication
  */
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://vc-bice.vercel.app';
+// Use environment variable for API URL, fallback to localhost for development
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 /**
  * Create a new room
@@ -59,7 +60,7 @@ export const checkRoomExists = async (roomId) => {
     // If it's a network error, throw it so the UI can show a proper error
     // If it's a 404, we already returned false above
     if (error.name === 'TypeError' && error.message.includes('fetch')) {
-      throw new Error('Network error: Could not connect to backend server.');
+      throw new Error('Network error: Could not connect to backend server. Make sure it is running on port 8000.');
     }
     throw error;
   }

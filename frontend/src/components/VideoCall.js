@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+// import Controls from './Controls';
 import EmojiPicker from './EmojiPicker';
 import FloatingEmoji from './FloatingEmoji';
 import { getColorFromName, getInitials } from '../utils/avatarUtils';
@@ -406,7 +407,9 @@ function VideoCall({ roomId, username, onLeave }) {
       return;
     }
     
-    const wsUrl = `ws://localhost:8000/ws/${currentRoomId}`;
+    // Use environment variable for WebSocket URL, fallback to localhost for development
+    const wsBaseUrl = process.env.REACT_APP_WS_URL || 'ws://localhost:8000';
+    const wsUrl = `${wsBaseUrl}/ws/${currentRoomId}`;
     console.log('Connecting to WebSocket:', wsUrl, 'for room:', currentRoomId);
     const ws = new WebSocket(wsUrl);
 
@@ -551,7 +554,7 @@ function VideoCall({ roomId, username, onLeave }) {
 
         // Check if user is sharing the current tab/window (infinity mirror detection)
         const videoTrack = screenStream.getVideoTracks()[0];
-        // Note: Can use videoTrack.getSettings() for detection if needed
+        // const settings = videoTrack.getSettings();
         
         // Show warning overlay when screen sharing starts
         setShowScreenShareWarning(true);
@@ -741,19 +744,14 @@ function VideoCall({ roomId, username, onLeave }) {
       }
       
       // Clean up peer connections
-      // Capture ref value to satisfy React hooks exhaustive-deps rule
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      const currentPeers = peersRef.current;
-      if (currentPeers) {
-        currentPeers.forEach((peer) => {
-          try {
-            peer.close();
-          } catch (e) {
-            console.warn('Error closing peer connection:', e);
-          }
-        });
-        currentPeers.clear();
-      }
+      peersRef.current.forEach((peer) => {
+        try {
+          peer.close();
+        } catch (e) {
+          console.warn('Error closing peer connection:', e);
+        }
+      });
+      peersRef.current.clear();
       
       // Stop local stream tracks
       if (localStreamRef.current) {
